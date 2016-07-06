@@ -1,0 +1,13 @@
+{
+  "name": "girder-treeview",
+  "version": "0.1.0",
+  "description": "A treeview widget that interacts with a girder server.",
+  "main": "index.js",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "jquery.fancytree": "^2.18.0"
+  },
+  "devDependencies": {
+    "eslint": "^3.0.1"
+  }
+}
