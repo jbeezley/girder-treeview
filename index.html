@@ -13,6 +13,7 @@
   <style>
     #girder-treeview {
       overflow: scroll;
+      margin-bottom: 20px;
     }
     #login-dp {
       min-width: 150px;
@@ -74,7 +75,7 @@
       </div>
     </div>
   </nav>
-  <div class="container">
+  <div class="main container">
     <div class="row">
       <div id="girder-treeview" class="col-md-6"></div>
       <pre id="preview" class="col-md-6"></pre>
@@ -101,7 +102,12 @@
         window.location = 'index.html?api=' + encodeURIComponent($('#api-url').val());
       });
 
-      $('#girder-treeview').css('max-height', $(window).height());
+      function resize() {
+        $('#girder-treeview').css('max-height', $(window).height() - 92);
+      }
+      $(window).resize(resize);
+      resize();
+
       var token;
       var match = document.cookie.match(/.*girderToken=([^;]*).*/);
       if (match) {
