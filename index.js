@@ -20,6 +20,7 @@
  *   Return a falsey value to use the default.
  * @param {object} [iconMap]
  *   A mapping of model type to icon class to override defaults.
+ * @param {boolean} [mockMutations=false] Mock all calls write calls to the server
  */
 
 $.fn.girderTreeview = function (options) {
@@ -305,6 +306,7 @@ $.fn.girderTreeview = function (options) {
   function restRequest(rest) {
     var token = options.token || girder.currentToken;
 
+    rest.method = rest.method || 'GET';
     rest.data = $.extend({}, rest.data || {});
 
     if (token) {
@@ -315,6 +317,9 @@ $.fn.girderTreeview = function (options) {
       });
     }
 
+    if (options.mockMutations && rest.method !== 'GET') {
+      return $.when({});
+    }
     return $.ajax(rest);
   }
 
