@@ -325,7 +325,8 @@ $.fn.girderTreeview = function (options) {
 
     promises = data.node.data.rest.map(function (rest) {
 
-      rest.data = $.extend(rest.data || {}, {limit: pageSize, offset: 0}, rest.data);
+      rest.data = rest.data || {};
+      rest.data.limit = pageSize;
       return restRequest(rest)
         .then(function (data) {
           Array.prototype.push.apply(children, data);
