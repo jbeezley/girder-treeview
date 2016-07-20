@@ -195,6 +195,13 @@ $.fn.girderTreeview = function (options) {
     });
   };
 
+  var remove = function (model) {
+    return restRequest({
+      url: api + '/' + model._modelType + '/' + model._id,
+      method: 'DELETE'
+    });
+  };
+
   var process = {
     collection: function (model) {
       return {
@@ -354,7 +361,7 @@ $.fn.girderTreeview = function (options) {
     });
   }
 
-  var extensions = ['glyph'];
+  var extensions = ['glyph', 'hotkeys'];
   if (options.dragAndDrop) {
     extensions.push('dnd');
   }
@@ -417,6 +424,23 @@ $.fn.girderTreeview = function (options) {
     return sources;
   });
 
+  var hotkeys = {
+    keyup: {
+      'del': function (node) {
+        if (!node.data.root && writeable({}, {node: node})) {
+          lock = true;
+          remove(node.data.model)
+            .then(function () {
+              lock = false;
+              node.remove();
+            }, function () {
+              lock = false;
+            });
+        }
+      }
+    }
+  };
+
   return this.each(function () {
     var $el = $(this);
 
@@ -431,10 +455,10 @@ $.fn.girderTreeview = function (options) {
       edit: edit_opts,
       focus: function (evt, data) {
         $el.trigger('g-focus', data.node);
-        window.node = data.node;
       },
       icon: icon,
-      clickPaging: clickPaging
+      clickPaging: clickPaging,
+      hotkeys: hotkeys
     });
   });
 };
