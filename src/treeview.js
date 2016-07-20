@@ -284,6 +284,7 @@ $.fn.girderTreeview = function (options) {
             parentId: model._id
           }
         }],
+        tooltip: model.firstName + ' ' + model.lastName,
         model: model,
         parentOf: ['folder']
       };
@@ -295,7 +296,17 @@ $.fn.girderTreeview = function (options) {
 
   function postProcess(data, parent) {
     return data.map(function (model) {
-        return process[model._modelType](model, parent);
+        var node = process[model._modelType](model, parent);
+        if (node.write) {
+          node.extraClasses = 'gt-writeable';
+        }
+        if (node.model && node.model.description) {
+          node.tooltip = node.model.description;
+        }
+        if (!node.tooltip) {
+          node.tooltip = node.title;
+        }
+        return node;
     });
   }
 
@@ -387,6 +398,7 @@ $.fn.girderTreeview = function (options) {
         {
           title: 'Home',
           root: 'home',
+          tooltip: 'Home folder',
           parentOf: []
         }
       );
@@ -396,6 +408,7 @@ $.fn.girderTreeview = function (options) {
       title: 'Collections',
       key: '2',
       folder: true,
+      tooltip: 'All collections',
       lazy: true,
       rest: [{
         url: api + '/collection'
@@ -409,6 +422,7 @@ $.fn.girderTreeview = function (options) {
       title: 'Users',
       key: '3',
       folder: true,
+      tooltip: 'All users',
       lazy: true,
       rest: [{
         url: api + '/user',
