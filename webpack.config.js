@@ -10,7 +10,6 @@ module.exports = {
   module: {
     loaders: [{
       test: /\.css$/,
-      include: /node_modules/,
       loader: 'style-loader!css-loader'
     }, {
       test: /\.(jpg|png)$/,
