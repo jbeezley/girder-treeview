@@ -1,0 +1,15 @@
+/*
+.gt-alert {
+    #position: relative;
+}
+.gt-alert p {
+    transform: translateY(-50%);
+    position: absolute;
+    top: 50%;
+}
+.gt-alert > div:after {
+    clear: both;
+    content: '';
+    display: table;
+}
+*/
