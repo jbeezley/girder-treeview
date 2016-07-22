@@ -34,6 +34,11 @@ $.fn.girderTreeview = function (options) {
 
   var pageSize = options.pageSize || 25;
 
+  /*
+  var $alert = $('<div/>').addClass('gt-alert alert hidden')
+    .attr('role', 'alert').appendTo(this);
+  */
+
   var iconMap = $.extend({
     collection: 'icon-database',
     user: 'icon-user',
@@ -82,6 +87,47 @@ $.fn.girderTreeview = function (options) {
     return !lock && !!data.node.data.write;
   }
 
+  // Get a reference to the user's recycle bin
+  // for undoing delete operations.  This function
+  // will create the folder if it doesn't already
+  // exist.
+  var recycleBinModel = null;
+  var recycleBin = function () {
+    var user;
+    if (recycleBinModel) {
+      return $.when(recycleBinModel);
+    }
+
+    return restRequest({
+      url: api + '/user/me'
+    }).then(function (me) {
+      user = me;
+      return restRequest({
+        url: api + '/folder',
+        data: {
+          parentType: me._modelType,
+          parentId: me._id,
+          name: 'Recycle Bin'
+        }
+      }).then(function (folders) {
+        if (!folders.length) {
+          return restRequest({
+            url: api + '/folder',
+            method: 'POST',
+            data: {
+              parentType: user._modelType,
+              parentId: user._id
+            }
+          });
+        }
+        return $.when(folders[0]);
+      }).then(function (folder) {
+        recycleBinModel = folder;
+        return folder;
+      });
+    });
+  };
+
   var glyph_opts = {
     map: $.extend({
       doc: "glyphicon glyphicon-file",
@@ -121,9 +167,11 @@ $.fn.girderTreeview = function (options) {
       var newParent = data.node.data.model;
       var oldParent = data.otherNode.data.parent.model;
       move[model._modelType](model, oldParent, newParent)
-        .then(function () {
+        .then(function (undo) {
+          console.log(undo); // eslint-disable-line no-console
           data.otherNode.moveTo(node, data.hitMode);
           lock = false;
+          undoAlert(undo);
           return data.otherNode.makeVisible();
         }, function () {
           console.error('Move failed on ' + model._id); // eslint-disable-line no-console
@@ -163,8 +211,36 @@ $.fn.girderTreeview = function (options) {
     }
   };
 
+  // methods to recreate a deleted model for undo functionality
+  var create = {
+    folder: function (model) {
+      return restRequest({
+        url: api + '/folder',
+        method: 'POST',
+        data: {
+          parentType: model.parentCollection,
+          parentId: model.parentId,
+          description: model.description,
+          public: model.public
+        }
+      });
+    },
+    item: function (model) {
+      return restRequest({
+        url: api + '/item',
+        method: 'POST',
+        data: {
+          folderId: model.folderId,
+          name: model.name,
+          description: model.description
+        }
+      });
+    }
+  };
+
   var move = {
     folder: function (model, oldParent, newParent) {
+
       return restRequest({
         url: api + '/folder/' + model._id,
         method: 'PUT',
@@ -172,33 +248,100 @@ $.fn.girderTreeview = function (options) {
           parentId: newParent._id,
           parentType: newParent._modelType
         }
+      }).then(function () {
+        return {
+          title: model.name + ' was moved.',
+          rest: {
+            url: api + '/folder/' + model._id,
+            method: 'PUT',
+            data: {
+              parentId: oldParent._id,
+              parentType: oldParent._modelType
+            }
+          }
+        };
       });
     },
     item: function (model, oldParent, newParent) {
+
       return restRequest({
         url: api + '/item/' + model._id,
         method: 'PUT',
         data: {
           folderId: newParent._id
         }
+      }).then(function () {
+        return {
+          title: model.name + ' was moved.',
+          rest: {
+            url: api + '/item/' + model._id,
+            method: 'PUT',
+            data: {
+              foldertId: oldParent._id
+            }
+          }
+        };
       });
     }
   };
 
   var rename = function (model, name) {
+    var oldName = model.name;
     return restRequest({
       url: api + '/' + model._modelType + '/' + model._id,
       method: 'PUT',
       data: {
         name: name
       }
+    }).then(function () {
+      return {
+        title: oldName + ' was renamed to ' + name,
+        rest: {
+          url: api + '/' + model._modelType + '/' + model._id,
+          method: 'PUT',
+          data: {
+            name: oldName
+          }
+        }
+      };
     });
   };
 
   var remove = function (model) {
-    return restRequest({
-      url: api + '/' + model._modelType + '/' + model._id,
-      method: 'DELETE'
+    var data;
+    var undo;
+    return recycleBin().then(function (bin) {
+      if (model._modelType === 'folder') {
+        data = {
+          parentType: 'folder',
+          parentId: bin._id
+        };
+        undo = {
+          parentType: model.parentCollection,
+          parentId: model.parentId
+        };
+      } else if (model._modelType === 'item') {
+        data = {
+          folderId: bin._id
+        };
+        undo = {
+          folderId: model.folderId
+        };
+      }
+      return restRequest({
+        url: api + '/' + model._modelType + '/' + model._id,
+        method: 'PUT',
+        data: data
+      });
+    }).then(function () {
+      return {
+        title: model.name + ' was deleted.',
+        rest: {
+          url: api + '/' + model._modelType + '/' + model._id,
+          method: 'PUT',
+          data: undo
+        }
+      };
     });
   };
 
@@ -284,6 +427,7 @@ $.fn.girderTreeview = function (options) {
             parentId: model._id
           }
         }],
+        tooltip: model.firstName + ' ' + model.lastName,
         model: model,
         parentOf: ['folder']
       };
@@ -295,7 +439,19 @@ $.fn.girderTreeview = function (options) {
 
   function postProcess(data, parent) {
     return data.map(function (model) {
-        return process[model._modelType](model, parent);
+        var node = process[model._modelType](model, parent);
+        if (node.write) {
+          node.extraClasses += ' gt-writeable';
+        } else {
+          node.extraClasses += ' gt-readonly';
+        }
+        if (node.model && node.model.description) {
+          node.tooltip = node.model.description;
+        }
+        if (!node.tooltip) {
+          node.tooltip = node.title;
+        }
+        return node;
     });
   }
 
@@ -325,7 +481,10 @@ $.fn.girderTreeview = function (options) {
     }
 
     if (options.mockMutations && rest.method !== 'GET') {
-      return $.when({});
+      console.log(rest); // eslint-disable-line no-console
+      return $.when({
+        _id: 'deadbeef'
+      });
     }
     return $.ajax(rest);
   }
@@ -387,6 +546,7 @@ $.fn.girderTreeview = function (options) {
         {
           title: 'Home',
           root: 'home',
+          tooltip: 'Home folder',
           parentOf: []
         }
       );
@@ -396,6 +556,7 @@ $.fn.girderTreeview = function (options) {
       title: 'Collections',
       key: '2',
       folder: true,
+      tooltip: 'All collections',
       lazy: true,
       rest: [{
         url: api + '/collection'
@@ -409,6 +570,7 @@ $.fn.girderTreeview = function (options) {
       title: 'Users',
       key: '3',
       folder: true,
+      tooltip: 'All users',
       lazy: true,
       rest: [{
         url: api + '/user',
@@ -430,9 +592,11 @@ $.fn.girderTreeview = function (options) {
         if (!node.data.root && writeable({}, {node: node})) {
           lock = true;
           remove(node.data.model)
-            .then(function () {
+            .then(function (undo) {
+              console.log(undo); // eslint-disable-line no-console
               lock = false;
               node.remove();
+              undoAlert(undo);
             }, function () {
               lock = false;
             });
@@ -440,6 +604,26 @@ $.fn.girderTreeview = function (options) {
       }
     }
   };
+
+  function undoAlert(obj) {
+    return;
+    $alert.empty().addClass('alert-warning alert-dismissible')
+      .removeClass('hidden');
+
+    var $undo = $('<button/>')
+      .addClass('btn btn-default')
+      .attr('href', '#')
+      .html('<span class="icon-ccw"></span>Undo');
+
+    var $dismiss = $('<button/>')
+      .addClass('close')
+      .attr('type', 'button')
+      .attr('data-dismiss', 'alert')
+      .append('<span>&times;</span>');
+
+    var div = $('<div/>').appendTo($alert);
+    div.append('<p class="">' + obj.title + '</p>').append($undo).append($dismiss);
+  }
 
   return this.each(function () {
     var $el = $(this);
