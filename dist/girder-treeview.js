@@ -46,13 +46,14 @@
 
 	__webpack_require__(1);
 
-	__webpack_require__(23);
-
 	__webpack_require__(24);
-	__webpack_require__(26);
-	__webpack_require__(27);
 
+	__webpack_require__(25);
+	__webpack_require__(27);
 	__webpack_require__(28);
+
+	__webpack_require__(29);
+	__webpack_require__(31);
 
 
 /***/ },
@@ -66,7 +67,8 @@
 	__webpack_require__(11);
 	__webpack_require__(12);
 	__webpack_require__(13);
-	__webpack_require__(22);
+	__webpack_require__(14);
+	__webpack_require__(23);
 
 
 /***/ },
@@ -539,6 +541,537 @@
 
 /***/ },
 /* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
+	 * jQuery UI Position 1.12.0
+	 * http://jqueryui.com
+	 *
+	 * Copyright jQuery Foundation and other contributors
+	 * Released under the MIT license.
+	 * http://jquery.org/license
+	 *
+	 * http://api.jqueryui.com/position/
+	 */
+
+	//>>label: Position
+	//>>group: Core
+	//>>description: Positions elements relative to other elements.
+	//>>docs: http://api.jqueryui.com/position/
+	//>>demos: http://jqueryui.com/position/
+
+	( function( factory ) {
+		if ( true ) {
+
+			// AMD. Register as an anonymous module.
+			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__(9), __webpack_require__(10) ], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+		} else {
+
+			// Browser globals
+			factory( jQuery );
+		}
+	}( function( $ ) {
+	( function() {
+	var cachedScrollbarWidth, supportsOffsetFractions,
+		max = Math.max,
+		abs = Math.abs,
+		round = Math.round,
+		rhorizontal = /left|center|right/,
+		rvertical = /top|center|bottom/,
+		roffset = /[\+\-]\d+(\.[\d]+)?%?/,
+		rposition = /^\w+/,
+		rpercent = /%$/,
+		_position = $.fn.position;
+
+	// Support: IE <=9 only
+	supportsOffsetFractions = function() {
+		var element = $( "<div>" )
+				.css( "position", "absolute" )
+				.appendTo( "body" )
+				.offset( {
+					top: 1.5,
+					left: 1.5
+				} ),
+			support = element.offset().top === 1.5;
+
+		element.remove();
+
+		supportsOffsetFractions = function() {
+			return support;
+		};
+
+		return support;
+	};
+
+	function getOffsets( offsets, width, height ) {
+		return [
+			parseFloat( offsets[ 0 ] ) * ( rpercent.test( offsets[ 0 ] ) ? width / 100 : 1 ),
+			parseFloat( offsets[ 1 ] ) * ( rpercent.test( offsets[ 1 ] ) ? height / 100 : 1 )
+		];
+	}
+
+	function parseCss( element, property ) {
+		return parseInt( $.css( element, property ), 10 ) || 0;
+	}
+
+	function getDimensions( elem ) {
+		var raw = elem[ 0 ];
+		if ( raw.nodeType === 9 ) {
+			return {
+				width: elem.width(),
+				height: elem.height(),
+				offset: { top: 0, left: 0 }
+			};
+		}
+		if ( $.isWindow( raw ) ) {
+			return {
+				width: elem.width(),
+				height: elem.height(),
+				offset: { top: elem.scrollTop(), left: elem.scrollLeft() }
+			};
+		}
+		if ( raw.preventDefault ) {
+			return {
+				width: 0,
+				height: 0,
+				offset: { top: raw.pageY, left: raw.pageX }
+			};
+		}
+		return {
+			width: elem.outerWidth(),
+			height: elem.outerHeight(),
+			offset: elem.offset()
+		};
+	}
+
+	$.position = {
+		scrollbarWidth: function() {
+			if ( cachedScrollbarWidth !== undefined ) {
+				return cachedScrollbarWidth;
+			}
+			var w1, w2,
+				div = $( "<div " +
+					"style='display:block;position:absolute;width:50px;height:50px;overflow:hidden;'>" +
+					"<div style='height:100px;width:auto;'></div></div>" ),
+				innerDiv = div.children()[ 0 ];
+
+			$( "body" ).append( div );
+			w1 = innerDiv.offsetWidth;
+			div.css( "overflow", "scroll" );
+
+			w2 = innerDiv.offsetWidth;
+
+			if ( w1 === w2 ) {
+				w2 = div[ 0 ].clientWidth;
+			}
+
+			div.remove();
+
+			return ( cachedScrollbarWidth = w1 - w2 );
+		},
+		getScrollInfo: function( within ) {
+			var overflowX = within.isWindow || within.isDocument ? "" :
+					within.element.css( "overflow-x" ),
+				overflowY = within.isWindow || within.isDocument ? "" :
+					within.element.css( "overflow-y" ),
+				hasOverflowX = overflowX === "scroll" ||
+					( overflowX === "auto" && within.width < within.element[ 0 ].scrollWidth ),
+				hasOverflowY = overflowY === "scroll" ||
+					( overflowY === "auto" && within.height < within.element[ 0 ].scrollHeight );
+			return {
+				width: hasOverflowY ? $.position.scrollbarWidth() : 0,
+				height: hasOverflowX ? $.position.scrollbarWidth() : 0
+			};
+		},
+		getWithinInfo: function( element ) {
+			var withinElement = $( element || window ),
+				isWindow = $.isWindow( withinElement[ 0 ] ),
+				isDocument = !!withinElement[ 0 ] && withinElement[ 0 ].nodeType === 9,
+				hasOffset = !isWindow && !isDocument;
+			return {
+				element: withinElement,
+				isWindow: isWindow,
+				isDocument: isDocument,
+				offset: hasOffset ? $( element ).offset() : { left: 0, top: 0 },
+				scrollLeft: withinElement.scrollLeft(),
+				scrollTop: withinElement.scrollTop(),
+				width: withinElement.outerWidth(),
+				height: withinElement.outerHeight()
+			};
+		}
+	};
+
+	$.fn.position = function( options ) {
+		if ( !options || !options.of ) {
+			return _position.apply( this, arguments );
+		}
+
+		// Make a copy, we don't want to modify arguments
+		options = $.extend( {}, options );
+
+		var atOffset, targetWidth, targetHeight, targetOffset, basePosition, dimensions,
+			target = $( options.of ),
+			within = $.position.getWithinInfo( options.within ),
+			scrollInfo = $.position.getScrollInfo( within ),
+			collision = ( options.collision || "flip" ).split( " " ),
+			offsets = {};
+
+		dimensions = getDimensions( target );
+		if ( target[ 0 ].preventDefault ) {
+
+			// Force left top to allow flipping
+			options.at = "left top";
+		}
+		targetWidth = dimensions.width;
+		targetHeight = dimensions.height;
+		targetOffset = dimensions.offset;
+
+		// Clone to reuse original targetOffset later
+		basePosition = $.extend( {}, targetOffset );
+
+		// Force my and at to have valid horizontal and vertical positions
+		// if a value is missing or invalid, it will be converted to center
+		$.each( [ "my", "at" ], function() {
+			var pos = ( options[ this ] || "" ).split( " " ),
+				horizontalOffset,
+				verticalOffset;
+
+			if ( pos.length === 1 ) {
+				pos = rhorizontal.test( pos[ 0 ] ) ?
+					pos.concat( [ "center" ] ) :
+					rvertical.test( pos[ 0 ] ) ?
+						[ "center" ].concat( pos ) :
+						[ "center", "center" ];
+			}
+			pos[ 0 ] = rhorizontal.test( pos[ 0 ] ) ? pos[ 0 ] : "center";
+			pos[ 1 ] = rvertical.test( pos[ 1 ] ) ? pos[ 1 ] : "center";
+
+			// Calculate offsets
+			horizontalOffset = roffset.exec( pos[ 0 ] );
+			verticalOffset = roffset.exec( pos[ 1 ] );
+			offsets[ this ] = [
+				horizontalOffset ? horizontalOffset[ 0 ] : 0,
+				verticalOffset ? verticalOffset[ 0 ] : 0
+			];
+
+			// Reduce to just the positions without the offsets
+			options[ this ] = [
+				rposition.exec( pos[ 0 ] )[ 0 ],
+				rposition.exec( pos[ 1 ] )[ 0 ]
+			];
+		} );
+
+		// Normalize collision option
+		if ( collision.length === 1 ) {
+			collision[ 1 ] = collision[ 0 ];
+		}
+
+		if ( options.at[ 0 ] === "right" ) {
+			basePosition.left += targetWidth;
+		} else if ( options.at[ 0 ] === "center" ) {
+			basePosition.left += targetWidth / 2;
+		}
+
+		if ( options.at[ 1 ] === "bottom" ) {
+			basePosition.top += targetHeight;
+		} else if ( options.at[ 1 ] === "center" ) {
+			basePosition.top += targetHeight / 2;
+		}
+
+		atOffset = getOffsets( offsets.at, targetWidth, targetHeight );
+		basePosition.left += atOffset[ 0 ];
+		basePosition.top += atOffset[ 1 ];
+
+		return this.each( function() {
+			var collisionPosition, using,
+				elem = $( this ),
+				elemWidth = elem.outerWidth(),
+				elemHeight = elem.outerHeight(),
+				marginLeft = parseCss( this, "marginLeft" ),
+				marginTop = parseCss( this, "marginTop" ),
+				collisionWidth = elemWidth + marginLeft + parseCss( this, "marginRight" ) +
+					scrollInfo.width,
+				collisionHeight = elemHeight + marginTop + parseCss( this, "marginBottom" ) +
+					scrollInfo.height,
+				position = $.extend( {}, basePosition ),
+				myOffset = getOffsets( offsets.my, elem.outerWidth(), elem.outerHeight() );
+
+			if ( options.my[ 0 ] === "right" ) {
+				position.left -= elemWidth;
+			} else if ( options.my[ 0 ] === "center" ) {
+				position.left -= elemWidth / 2;
+			}
+
+			if ( options.my[ 1 ] === "bottom" ) {
+				position.top -= elemHeight;
+			} else if ( options.my[ 1 ] === "center" ) {
+				position.top -= elemHeight / 2;
+			}
+
+			position.left += myOffset[ 0 ];
+			position.top += myOffset[ 1 ];
+
+			// If the browser doesn't support fractions, then round for consistent results
+			if ( !supportsOffsetFractions() ) {
+				position.left = round( position.left );
+				position.top = round( position.top );
+			}
+
+			collisionPosition = {
+				marginLeft: marginLeft,
+				marginTop: marginTop
+			};
+
+			$.each( [ "left", "top" ], function( i, dir ) {
+				if ( $.ui.position[ collision[ i ] ] ) {
+					$.ui.position[ collision[ i ] ][ dir ]( position, {
+						targetWidth: targetWidth,
+						targetHeight: targetHeight,
+						elemWidth: elemWidth,
+						elemHeight: elemHeight,
+						collisionPosition: collisionPosition,
+						collisionWidth: collisionWidth,
+						collisionHeight: collisionHeight,
+						offset: [ atOffset[ 0 ] + myOffset[ 0 ], atOffset [ 1 ] + myOffset[ 1 ] ],
+						my: options.my,
+						at: options.at,
+						within: within,
+						elem: elem
+					} );
+				}
+			} );
+
+			if ( options.using ) {
+
+				// Adds feedback as second argument to using callback, if present
+				using = function( props ) {
+					var left = targetOffset.left - position.left,
+						right = left + targetWidth - elemWidth,
+						top = targetOffset.top - position.top,
+						bottom = top + targetHeight - elemHeight,
+						feedback = {
+							target: {
+								element: target,
+								left: targetOffset.left,
+								top: targetOffset.top,
+								width: targetWidth,
+								height: targetHeight
+							},
+							element: {
+								element: elem,
+								left: position.left,
+								top: position.top,
+								width: elemWidth,
+								height: elemHeight
+							},
+							horizontal: right < 0 ? "left" : left > 0 ? "right" : "center",
+							vertical: bottom < 0 ? "top" : top > 0 ? "bottom" : "middle"
+						};
+					if ( targetWidth < elemWidth && abs( left + right ) < targetWidth ) {
+						feedback.horizontal = "center";
+					}
+					if ( targetHeight < elemHeight && abs( top + bottom ) < targetHeight ) {
+						feedback.vertical = "middle";
+					}
+					if ( max( abs( left ), abs( right ) ) > max( abs( top ), abs( bottom ) ) ) {
+						feedback.important = "horizontal";
+					} else {
+						feedback.important = "vertical";
+					}
+					options.using.call( this, props, feedback );
+				};
+			}
+
+			elem.offset( $.extend( position, { using: using } ) );
+		} );
+	};
+
+	$.ui.position = {
+		fit: {
+			left: function( position, data ) {
+				var within = data.within,
+					withinOffset = within.isWindow ? within.scrollLeft : within.offset.left,
+					outerWidth = within.width,
+					collisionPosLeft = position.left - data.collisionPosition.marginLeft,
+					overLeft = withinOffset - collisionPosLeft,
+					overRight = collisionPosLeft + data.collisionWidth - outerWidth - withinOffset,
+					newOverRight;
+
+				// Element is wider than within
+				if ( data.collisionWidth > outerWidth ) {
+
+					// Element is initially over the left side of within
+					if ( overLeft > 0 && overRight <= 0 ) {
+						newOverRight = position.left + overLeft + data.collisionWidth - outerWidth -
+							withinOffset;
+						position.left += overLeft - newOverRight;
+
+					// Element is initially over right side of within
+					} else if ( overRight > 0 && overLeft <= 0 ) {
+						position.left = withinOffset;
+
+					// Element is initially over both left and right sides of within
+					} else {
+						if ( overLeft > overRight ) {
+							position.left = withinOffset + outerWidth - data.collisionWidth;
+						} else {
+							position.left = withinOffset;
+						}
+					}
+
+				// Too far left -> align with left edge
+				} else if ( overLeft > 0 ) {
+					position.left += overLeft;
+
+				// Too far right -> align with right edge
+				} else if ( overRight > 0 ) {
+					position.left -= overRight;
+
+				// Adjust based on position and margin
+				} else {
+					position.left = max( position.left - collisionPosLeft, position.left );
+				}
+			},
+			top: function( position, data ) {
+				var within = data.within,
+					withinOffset = within.isWindow ? within.scrollTop : within.offset.top,
+					outerHeight = data.within.height,
+					collisionPosTop = position.top - data.collisionPosition.marginTop,
+					overTop = withinOffset - collisionPosTop,
+					overBottom = collisionPosTop + data.collisionHeight - outerHeight - withinOffset,
+					newOverBottom;
+
+				// Element is taller than within
+				if ( data.collisionHeight > outerHeight ) {
+
+					// Element is initially over the top of within
+					if ( overTop > 0 && overBottom <= 0 ) {
+						newOverBottom = position.top + overTop + data.collisionHeight - outerHeight -
+							withinOffset;
+						position.top += overTop - newOverBottom;
+
+					// Element is initially over bottom of within
+					} else if ( overBottom > 0 && overTop <= 0 ) {
+						position.top = withinOffset;
+
+					// Element is initially over both top and bottom of within
+					} else {
+						if ( overTop > overBottom ) {
+							position.top = withinOffset + outerHeight - data.collisionHeight;
+						} else {
+							position.top = withinOffset;
+						}
+					}
+
+				// Too far up -> align with top
+				} else if ( overTop > 0 ) {
+					position.top += overTop;
+
+				// Too far down -> align with bottom edge
+				} else if ( overBottom > 0 ) {
+					position.top -= overBottom;
+
+				// Adjust based on position and margin
+				} else {
+					position.top = max( position.top - collisionPosTop, position.top );
+				}
+			}
+		},
+		flip: {
+			left: function( position, data ) {
+				var within = data.within,
+					withinOffset = within.offset.left + within.scrollLeft,
+					outerWidth = within.width,
+					offsetLeft = within.isWindow ? within.scrollLeft : within.offset.left,
+					collisionPosLeft = position.left - data.collisionPosition.marginLeft,
+					overLeft = collisionPosLeft - offsetLeft,
+					overRight = collisionPosLeft + data.collisionWidth - outerWidth - offsetLeft,
+					myOffset = data.my[ 0 ] === "left" ?
+						-data.elemWidth :
+						data.my[ 0 ] === "right" ?
+							data.elemWidth :
+							0,
+					atOffset = data.at[ 0 ] === "left" ?
+						data.targetWidth :
+						data.at[ 0 ] === "right" ?
+							-data.targetWidth :
+							0,
+					offset = -2 * data.offset[ 0 ],
+					newOverRight,
+					newOverLeft;
+
+				if ( overLeft < 0 ) {
+					newOverRight = position.left + myOffset + atOffset + offset + data.collisionWidth -
+						outerWidth - withinOffset;
+					if ( newOverRight < 0 || newOverRight < abs( overLeft ) ) {
+						position.left += myOffset + atOffset + offset;
+					}
+				} else if ( overRight > 0 ) {
+					newOverLeft = position.left - data.collisionPosition.marginLeft + myOffset +
+						atOffset + offset - offsetLeft;
+					if ( newOverLeft > 0 || abs( newOverLeft ) < overRight ) {
+						position.left += myOffset + atOffset + offset;
+					}
+				}
+			},
+			top: function( position, data ) {
+				var within = data.within,
+					withinOffset = within.offset.top + within.scrollTop,
+					outerHeight = within.height,
+					offsetTop = within.isWindow ? within.scrollTop : within.offset.top,
+					collisionPosTop = position.top - data.collisionPosition.marginTop,
+					overTop = collisionPosTop - offsetTop,
+					overBottom = collisionPosTop + data.collisionHeight - outerHeight - offsetTop,
+					top = data.my[ 1 ] === "top",
+					myOffset = top ?
+						-data.elemHeight :
+						data.my[ 1 ] === "bottom" ?
+							data.elemHeight :
+							0,
+					atOffset = data.at[ 1 ] === "top" ?
+						data.targetHeight :
+						data.at[ 1 ] === "bottom" ?
+							-data.targetHeight :
+							0,
+					offset = -2 * data.offset[ 1 ],
+					newOverTop,
+					newOverBottom;
+				if ( overTop < 0 ) {
+					newOverBottom = position.top + myOffset + atOffset + offset + data.collisionHeight -
+						outerHeight - withinOffset;
+					if ( newOverBottom < 0 || newOverBottom < abs( overTop ) ) {
+						position.top += myOffset + atOffset + offset;
+					}
+				} else if ( overBottom > 0 ) {
+					newOverTop = position.top - data.collisionPosition.marginTop + myOffset + atOffset +
+						offset - offsetTop;
+					if ( newOverTop > 0 || abs( newOverTop ) < overBottom ) {
+						position.top += myOffset + atOffset + offset;
+					}
+				}
+			}
+		},
+		flipfit: {
+			left: function() {
+				$.ui.position.flip.left.apply( this, arguments );
+				$.ui.position.fit.left.apply( this, arguments );
+			},
+			top: function() {
+				$.ui.position.flip.top.apply( this, arguments );
+				$.ui.position.fit.top.apply( this, arguments );
+			}
+		}
+	};
+
+	} )();
+
+	return $.ui.position;
+
+	} ) );
+
+
+/***/ },
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -2179,7 +2712,7 @@
 
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -2204,7 +2737,7 @@
 			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [
 				__webpack_require__(9),
 				__webpack_require__(10),
-				__webpack_require__(11)
+				__webpack_require__(12)
 			], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 		} else {
 
@@ -2255,7 +2788,7 @@
 
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -2280,14 +2813,14 @@
 			// AMD. Register as an anonymous module.
 			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [
 				__webpack_require__(9),
-				__webpack_require__(14),
-				__webpack_require__(17),
+				__webpack_require__(15),
 				__webpack_require__(18),
-				__webpack_require__(21),
 				__webpack_require__(19),
+				__webpack_require__(22),
 				__webpack_require__(20),
+				__webpack_require__(21),
 				__webpack_require__(10),
-				__webpack_require__(16)
+				__webpack_require__(17)
 			], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 		} else {
 
@@ -3512,7 +4045,7 @@
 
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -3535,9 +4068,9 @@
 			// AMD. Register as an anonymous module.
 			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [
 				__webpack_require__(9),
-				__webpack_require__(15),
+				__webpack_require__(16),
 				__webpack_require__(10),
-				__webpack_require__(16)
+				__webpack_require__(17)
 			], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 		} else {
 
@@ -3744,7 +4277,7 @@
 
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;( function( factory ) {
@@ -3765,7 +4298,7 @@
 
 
 /***/ },
-/* 16 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -4484,7 +5017,7 @@
 
 
 /***/ },
-/* 17 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -4529,7 +5062,7 @@
 
 
 /***/ },
-/* 18 */
+/* 19 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;( function( factory ) {
@@ -4579,7 +5112,7 @@
 
 
 /***/ },
-/* 19 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;( function( factory ) {
@@ -4606,7 +5139,7 @@
 
 
 /***/ },
-/* 20 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -4657,7 +5190,7 @@
 
 
 /***/ },
-/* 21 */
+/* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;( function( factory ) {
@@ -4703,7 +5236,7 @@
 
 
 /***/ },
-/* 22 */
+/* 23 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -4727,10 +5260,10 @@
 			// AMD. Register as an anonymous module.
 			!(__WEBPACK_AMD_DEFINE_ARRAY__ = [
 				__webpack_require__(9),
-				__webpack_require__(13),
 				__webpack_require__(14),
+				__webpack_require__(15),
 				__webpack_require__(10),
-				__webpack_require__(16)
+				__webpack_require__(17)
 			], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 		} else {
 
@@ -5206,7 +5739,7 @@
 
 
 /***/ },
-/* 23 */
+/* 24 */
 /***/ function(module, exports) {
 
 	/*jslint browser: true*/
@@ -5416,13 +5949,13 @@
 
 
 /***/ },
-/* 24 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// style-loader: Adds some css to the DOM by adding a <style> tag
 
 	// load the styles
-	var content = __webpack_require__(25);
+	var content = __webpack_require__(26);
 	if(typeof content === 'string') content = [[module.id, content, '']];
 	// add the styles to the DOM
 	var update = __webpack_require__(5)(content, {});
@@ -5442,7 +5975,7 @@
 	}
 
 /***/ },
-/* 25 */
+/* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports = module.exports = __webpack_require__(4)();
@@ -5456,7 +5989,7 @@
 
 
 /***/ },
-/* 26 */
+/* 27 */
 /***/ function(module, exports) {
 
 	/*!
@@ -13635,7 +14168,7 @@
 
 
 /***/ },
-/* 27 */
+/* 28 */
 /***/ function(module, exports) {
 
 	/**!
@@ -13676,7 +14209,47 @@
 
 
 /***/ },
-/* 28 */
+/* 29 */
+/***/ function(module, exports, __webpack_require__) {
+
+	// style-loader: Adds some css to the DOM by adding a <style> tag
+
+	// load the styles
+	var content = __webpack_require__(30);
+	if(typeof content === 'string') content = [[module.id, content, '']];
+	// add the styles to the DOM
+	var update = __webpack_require__(5)(content, {});
+	if(content.locals) module.exports = content.locals;
+	// Hot Module Replacement
+	if(false) {
+		// When the styles change, update the <style> tags
+		if(!content.locals) {
+			module.hot.accept("!!./../node_modules/css-loader/index.js!./treeview.css", function() {
+				var newContent = require("!!./../node_modules/css-loader/index.js!./treeview.css");
+				if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+				update(newContent);
+			});
+		}
+		// When the module is disposed, remove the <style> tags
+		module.hot.dispose(function() { update(); });
+	}
+
+/***/ },
+/* 30 */
+/***/ function(module, exports, __webpack_require__) {
+
+	exports = module.exports = __webpack_require__(4)();
+	// imports
+
+
+	// module
+	exports.push([module.id, "/*\n.gt-alert {\n    #position: relative;\n}\n.gt-alert p {\n    transform: translateY(-50%);\n    position: absolute;\n    top: 50%;\n}\n.gt-alert > div:after {\n    clear: both;\n    content: '';\n    display: table;\n}\n*/\n", ""]);
+
+	// exports
+
+
+/***/ },
+/* 31 */
 /***/ function(module, exports) {
 
 	/**
@@ -13714,6 +14287,11 @@
 	  options.icon = options.icon || $.noop;
 
 	  var pageSize = options.pageSize || 25;
+
+	  /*
+	  var $alert = $('<div/>').addClass('gt-alert alert hidden')
+	    .attr('role', 'alert').appendTo(this);
+	  */
 
 	  var iconMap = $.extend({
 	    collection: 'icon-database',
@@ -13763,6 +14341,47 @@
 	    return !lock && !!data.node.data.write;
 	  }
 
+	  // Get a reference to the user's recycle bin
+	  // for undoing delete operations.  This function
+	  // will create the folder if it doesn't already
+	  // exist.
+	  var recycleBinModel = null;
+	  var recycleBin = function () {
+	    var user;
+	    if (recycleBinModel) {
+	      return $.when(recycleBinModel);
+	    }
+
+	    return restRequest({
+	      url: api + '/user/me'
+	    }).then(function (me) {
+	      user = me;
+	      return restRequest({
+	        url: api + '/folder',
+	        data: {
+	          parentType: me._modelType,
+	          parentId: me._id,
+	          name: 'Recycle Bin'
+	        }
+	      }).then(function (folders) {
+	        if (!folders.length) {
+	          return restRequest({
+	            url: api + '/folder',
+	            method: 'POST',
+	            data: {
+	              parentType: user._modelType,
+	              parentId: user._id
+	            }
+	          });
+	        }
+	        return $.when(folders[0]);
+	      }).then(function (folder) {
+	        recycleBinModel = folder;
+	        return folder;
+	      });
+	    });
+	  };
+
 	  var glyph_opts = {
 	    map: $.extend({
 	      doc: "glyphicon glyphicon-file",
@@ -13802,9 +14421,11 @@
 	      var newParent = data.node.data.model;
 	      var oldParent = data.otherNode.data.parent.model;
 	      move[model._modelType](model, oldParent, newParent)
-	        .then(function () {
+	        .then(function (undo) {
+	          console.log(undo); // eslint-disable-line no-console
 	          data.otherNode.moveTo(node, data.hitMode);
 	          lock = false;
+	          undoAlert(undo);
 	          return data.otherNode.makeVisible();
 	        }, function () {
 	          console.error('Move failed on ' + model._id); // eslint-disable-line no-console
@@ -13844,8 +14465,36 @@
 	    }
 	  };
 
+	  // methods to recreate a deleted model for undo functionality
+	  var create = {
+	    folder: function (model) {
+	      return restRequest({
+	        url: api + '/folder',
+	        method: 'POST',
+	        data: {
+	          parentType: model.parentCollection,
+	          parentId: model.parentId,
+	          description: model.description,
+	          public: model.public
+	        }
+	      });
+	    },
+	    item: function (model) {
+	      return restRequest({
+	        url: api + '/item',
+	        method: 'POST',
+	        data: {
+	          folderId: model.folderId,
+	          name: model.name,
+	          description: model.description
+	        }
+	      });
+	    }
+	  };
+
 	  var move = {
 	    folder: function (model, oldParent, newParent) {
+
 	      return restRequest({
 	        url: api + '/folder/' + model._id,
 	        method: 'PUT',
@@ -13853,33 +14502,100 @@
 	          parentId: newParent._id,
 	          parentType: newParent._modelType
 	        }
+	      }).then(function () {
+	        return {
+	          title: model.name + ' was moved.',
+	          rest: {
+	            url: api + '/folder/' + model._id,
+	            method: 'PUT',
+	            data: {
+	              parentId: oldParent._id,
+	              parentType: oldParent._modelType
+	            }
+	          }
+	        };
 	      });
 	    },
 	    item: function (model, oldParent, newParent) {
+
 	      return restRequest({
 	        url: api + '/item/' + model._id,
 	        method: 'PUT',
 	        data: {
 	          folderId: newParent._id
 	        }
+	      }).then(function () {
+	        return {
+	          title: model.name + ' was moved.',
+	          rest: {
+	            url: api + '/item/' + model._id,
+	            method: 'PUT',
+	            data: {
+	              foldertId: oldParent._id
+	            }
+	          }
+	        };
 	      });
 	    }
 	  };
 
 	  var rename = function (model, name) {
+	    var oldName = model.name;
 	    return restRequest({
 	      url: api + '/' + model._modelType + '/' + model._id,
 	      method: 'PUT',
 	      data: {
 	        name: name
 	      }
+	    }).then(function () {
+	      return {
+	        title: oldName + ' was renamed to ' + name,
+	        rest: {
+	          url: api + '/' + model._modelType + '/' + model._id,
+	          method: 'PUT',
+	          data: {
+	            name: oldName
+	          }
+	        }
+	      };
 	    });
 	  };
 
 	  var remove = function (model) {
-	    return restRequest({
-	      url: api + '/' + model._modelType + '/' + model._id,
-	      method: 'DELETE'
+	    var data;
+	    var undo;
+	    return recycleBin().then(function (bin) {
+	      if (model._modelType === 'folder') {
+	        data = {
+	          parentType: 'folder',
+	          parentId: bin._id
+	        };
+	        undo = {
+	          parentType: model.parentCollection,
+	          parentId: model.parentId
+	        };
+	      } else if (model._modelType === 'item') {
+	        data = {
+	          folderId: bin._id
+	        };
+	        undo = {
+	          folderId: model.folderId
+	        };
+	      }
+	      return restRequest({
+	        url: api + '/' + model._modelType + '/' + model._id,
+	        method: 'PUT',
+	        data: data
+	      });
+	    }).then(function () {
+	      return {
+	        title: model.name + ' was deleted.',
+	        rest: {
+	          url: api + '/' + model._modelType + '/' + model._id,
+	          method: 'PUT',
+	          data: undo
+	        }
+	      };
 	    });
 	  };
 
@@ -13965,6 +14681,7 @@
 	            parentId: model._id
 	          }
 	        }],
+	        tooltip: model.firstName + ' ' + model.lastName,
 	        model: model,
 	        parentOf: ['folder']
 	      };
@@ -13976,7 +14693,19 @@
 
 	  function postProcess(data, parent) {
 	    return data.map(function (model) {
-	        return process[model._modelType](model, parent);
+	        var node = process[model._modelType](model, parent);
+	        if (node.write) {
+	          node.extraClasses += ' gt-writeable';
+	        } else {
+	          node.extraClasses += ' gt-readonly';
+	        }
+	        if (node.model && node.model.description) {
+	          node.tooltip = node.model.description;
+	        }
+	        if (!node.tooltip) {
+	          node.tooltip = node.title;
+	        }
+	        return node;
 	    });
 	  }
 
@@ -14006,7 +14735,10 @@
 	    }
 
 	    if (options.mockMutations && rest.method !== 'GET') {
-	      return $.when({});
+	      console.log(rest); // eslint-disable-line no-console
+	      return $.when({
+	        _id: 'deadbeef'
+	      });
 	    }
 	    return $.ajax(rest);
 	  }
@@ -14068,6 +14800,7 @@
 	        {
 	          title: 'Home',
 	          root: 'home',
+	          tooltip: 'Home folder',
 	          parentOf: []
 	        }
 	      );
@@ -14077,6 +14810,7 @@
 	      title: 'Collections',
 	      key: '2',
 	      folder: true,
+	      tooltip: 'All collections',
 	      lazy: true,
 	      rest: [{
 	        url: api + '/collection'
@@ -14090,6 +14824,7 @@
 	      title: 'Users',
 	      key: '3',
 	      folder: true,
+	      tooltip: 'All users',
 	      lazy: true,
 	      rest: [{
 	        url: api + '/user',
@@ -14111,9 +14846,11 @@
 	        if (!node.data.root && writeable({}, {node: node})) {
 	          lock = true;
 	          remove(node.data.model)
-	            .then(function () {
+	            .then(function (undo) {
+	              console.log(undo); // eslint-disable-line no-console
 	              lock = false;
 	              node.remove();
+	              undoAlert(undo);
 	            }, function () {
 	              lock = false;
 	            });
@@ -14121,6 +14858,26 @@
 	      }
 	    }
 	  };
+
+	  function undoAlert(obj) {
+	    return;
+	    $alert.empty().addClass('alert-warning alert-dismissible')
+	      .removeClass('hidden');
+
+	    var $undo = $('<button/>')
+	      .addClass('btn btn-default')
+	      .attr('href', '#')
+	      .html('<span class="icon-ccw"></span>Undo');
+
+	    var $dismiss = $('<button/>')
+	      .addClass('close')
+	      .attr('type', 'button')
+	      .attr('data-dismiss', 'alert')
+	      .append('<span>&times;</span>');
+
+	    var div = $('<div/>').appendTo($alert);
+	    div.append('<p class="">' + obj.title + '</p>').append($undo).append($dismiss);
+	  }
 
 	  return this.each(function () {
 	    var $el = $(this);
