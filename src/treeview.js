@@ -34,10 +34,8 @@ $.fn.girderTreeview = function (options) {
 
   var pageSize = options.pageSize || 25;
 
-  /*
   var $alert = $('<div/>').addClass('gt-alert alert hidden')
     .attr('role', 'alert').appendTo(this);
-  */
 
   var iconMap = $.extend({
     collection: 'icon-database',
@@ -115,6 +113,7 @@ $.fn.girderTreeview = function (options) {
             url: api + '/folder',
             method: 'POST',
             data: {
+              name: 'Recycle Bin',
               parentType: user._modelType,
               parentId: user._id
             }
@@ -438,7 +437,10 @@ $.fn.girderTreeview = function (options) {
   };
 
   function postProcess(data, parent) {
-    return data.map(function (model) {
+    return data.filter(function (model) {
+      // don't show the "Recycle Bin" folder
+      return (parent && parent.model._modelType !== 'user') || model.name !== 'Recycle Bin';
+    }).map(function (model) {
         var node = process[model._modelType](model, parent);
         if (node.write) {
           node.extraClasses += ' gt-writeable';
@@ -606,10 +608,17 @@ $.fn.girderTreeview = function (options) {
   };
 
   function undoAlert(obj) {
-    return;
-    $alert.empty().addClass('alert-warning alert-dismissible')
-      .removeClass('hidden');
+    $alert.empty().addClass('alert alert-warning alert-dismissible')
+      .removeClass('hidden')
+      .html(
+        obj.title +
+        '<p class="pull-right">' +
+        '<a class="btn btn-default" style="display:inline" href="#" data-dismiss="alert"><span class="icon-ccw"></span>Undo</a>' +
+        '<button class="close" data-dismiss="alert"><span>&times;</span></button>' +
+        '</p>'
+      );
 
+    /*
     var $undo = $('<button/>')
       .addClass('btn btn-default')
       .attr('href', '#')
@@ -622,7 +631,8 @@ $.fn.girderTreeview = function (options) {
       .append('<span>&times;</span>');
 
     var div = $('<div/>').appendTo($alert);
-    div.append('<p class="">' + obj.title + '</p>').append($undo).append($dismiss);
+    div.append('<p class="pull-right">' + obj.title + '</p>').append($undo).append($dismiss);
+    */
   }
 
   return this.each(function () {
