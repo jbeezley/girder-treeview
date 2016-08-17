@@ -28,14 +28,14 @@ $.fn.girderTreeview = function (options) {
 
   options = options || {};
   var girder = window.girder || {};
+  var tree;
+  var $el;
 
   var api = options.api || girder.apiRoot;
   options.icon = options.icon || $.noop;
+  var $alert = $(options.alert) || $('<div/>').addClass('gt-alert').appendTo(this);
 
   var pageSize = options.pageSize || 25;
-
-  var $alert = $('<div/>').addClass('gt-alert alert hidden')
-    .attr('role', 'alert').appendTo(this);
 
   var iconMap = $.extend({
     collection: 'icon-database',
@@ -83,6 +83,22 @@ $.fn.girderTreeview = function (options) {
 
   function writeable(event, data) {
     return !lock && !!data.node.data.write;
+  }
+
+  /**
+   * Return a serialized snapshot of the tree state.
+   */
+  function snapshot(node) {
+    node = node || tree.rootNode;
+    return node.toDict(true);
+  }
+
+  /**
+   * Restore a tree from a snapshot.
+   */
+  function restore(state, node) {
+    node = node || tree.rootNode;
+    return node.fromDict(state);
   }
 
   // Get a reference to the user's recycle bin
@@ -165,9 +181,14 @@ $.fn.girderTreeview = function (options) {
       var model = data.otherNode.data.model;
       var newParent = data.node.data.model;
       var oldParent = data.otherNode.data.parent.model;
+      // var oldParentNode = data.otherNode.parent;
       move[model._modelType](model, oldParent, newParent)
         .then(function (undo) {
+          var save = snapshot();
           console.log(undo); // eslint-disable-line no-console
+          undo.restore = function () {
+            restore(save);
+          };
           data.otherNode.moveTo(node, data.hitMode);
           lock = false;
           undoAlert(undo);
@@ -608,37 +629,26 @@ $.fn.girderTreeview = function (options) {
   };
 
   function undoAlert(obj) {
-    $alert.empty().addClass('alert alert-warning alert-dismissible')
-      .removeClass('hidden')
+    $('<div/>').addClass('alert alert-warning alert-dismissible fade in')
+      .attr('role', 'alert').appendTo($alert.empty())
       .html(
         obj.title +
         '<p class="pull-right">' +
-        '<a class="btn btn-default" style="display:inline" href="#" data-dismiss="alert"><span class="icon-ccw"></span>Undo</a>' +
+        '<a class="btn btn-default gt-undo" style="display:inline" href="#" data-dismiss="alert"><span class="icon-ccw"></span>Undo</a>' +
         '<button class="close" data-dismiss="alert"><span>&times;</span></button>' +
         '</p>'
       );
-
-    /*
-    var $undo = $('<button/>')
-      .addClass('btn btn-default')
-      .attr('href', '#')
-      .html('<span class="icon-ccw"></span>Undo');
-
-    var $dismiss = $('<button/>')
-      .addClass('close')
-      .attr('type', 'button')
-      .attr('data-dismiss', 'alert')
-      .append('<span>&times;</span>');
-
-    var div = $('<div/>').appendTo($alert);
-    div.append('<p class="pull-right">' + obj.title + '</p>').append($undo).append($dismiss);
-    */
+    $alert.find('.gt-undo').click(function () {
+      restRequest(obj.rest).then(function () {
+        obj.restore();
+      });
+    });
   }
 
   return this.each(function () {
-    var $el = $(this);
+    $el = $(this);
 
-    $el.fancytree({
+    tree = $el.fancytree({
       extensions: extensions,
       source: source,
       lazyLoad: lazyLoad,
@@ -653,6 +663,8 @@ $.fn.girderTreeview = function (options) {
       icon: icon,
       clickPaging: clickPaging,
       hotkeys: hotkeys
-    });
+    }).fancytree('getTree');
+
+    window.tree = tree;
   });
 };

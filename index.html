@@ -28,6 +28,10 @@
     .gt-readonly .fancytree-title {
       background-color: #ffebee;
     }
+
+    #example-alert {
+      z-index: 1001;
+    }
   </style>
 
   <script src="https://code.jquery.com/jquery-2.2.4.min.js" type="text/javascript"></script>
@@ -76,6 +80,7 @@
     </div>
   </nav>
   <div class="main container">
+    <div id="example-alert"></div>
     <div class="row">
       <div id="girder-treeview" class="col-md-6"></div>
       <pre id="preview" class="col-md-6"></pre>
@@ -150,7 +155,8 @@
         dragAndDrop: true,
         edit: true,
         token: token,
-        mockMutations: true
+        mockMutations: true,
+        alert: '#example-alert'
       }).on('g-focus', preview);
     });
   </script>
